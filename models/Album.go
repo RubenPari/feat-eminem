@@ -1,11 +1,9 @@
 package models
 
+import "github.com/zmb3/spotify/v2"
+
 type Album struct {
-	Href     string     `json:"href"`
-	Items    []struct{} `json:"items"`
-	Limit    int        `json:"limit"`
-	Next     string     `json:"next"`
-	Offset   int        `json:"offset"`
-	Previous string     `json:"previous"`
-	Total    int        `json:"total"`
+	Id   spotify.ID  `json:"id"`
+	Name string      `json:"name"`
+	Uri  spotify.URI `json:"uri"`
 }

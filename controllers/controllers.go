@@ -48,8 +48,8 @@ func SearchSongs(w http.ResponseWriter, _ *http.Request) {
 	for _, trak := range allSongs.Tracks.Tracks {
 		if trak.Artists[0].Name != "Eminem" {
 			songs = append(songs, models.Track{
-				Id:   string(trak.ID),
-				Href: string(trak.URI),
+				Id:   trak.ID,
+				Uri:  trak.URI,
 				Name: trak.Name,
 			})
 		}
