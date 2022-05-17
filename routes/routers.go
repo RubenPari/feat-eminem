@@ -11,6 +11,7 @@ func GetRouter() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/artists/add", artist.Add)
+	mux.HandleFunc("/artists/getAllSongs", artist.GetAllSongs)
 
 	// Return the ServeMux
 	return mux
