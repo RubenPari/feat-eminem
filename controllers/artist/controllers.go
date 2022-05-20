@@ -1,12 +1,16 @@
 package artist
 
 import (
+	"bufio"
 	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+	"path"
+
 	"github.com/RubenPari/feat-eminem/models"
 	"github.com/RubenPari/feat-eminem/modules"
 	"github.com/zmb3/spotify/v2"
-	"log"
-	"net/http"
 )
 
 func Add(w http.ResponseWriter, r *http.Request) {
@@ -28,8 +32,51 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		Name: artistApi.Artists.Artists[0].Name,
 	}
 
-	// TODO: save artist in database
-	_ = json.NewEncoder(w).Encode(artist)
+	// add artist to file
+
+	// get base directory
+	currentDir, _ := os.Getwd()
+	filePath := path.Join(currentDir, "artist.csv")
+
+	// create or open file
+	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	// check if file was created
+
+	var dataWritted int
+	scanner := bufio.NewScanner(file)
+
+	// TODO: dosen't work
+	for scanner.Scan() {
+		if scanner.Text() == "" {
+			// create the first line file csv
+			file.WriteString("Id," + "Uri," + "Name" + "\n")
+			break
+		}
+	}
+
+	dataWritted, _ = file.WriteString(string(artist.Id) + "," + string(artist.Uri) + "," + artist.Name + "\n")
+
+	file.Close()
+
+	var response map[string]string
+
+	if dataWritted == 0 {
+		response = map[string]string{
+			"status":  "error",
+			"message": "error to write row in file",
+		}
+	} else {
+		response = map[string]string{
+			"status":  "success",
+			"message": "artist saved on file",
+		}
+	}
+
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 func GetAllSongs(w http.ResponseWriter, r *http.Request) {
