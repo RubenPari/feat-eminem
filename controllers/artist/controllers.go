@@ -3,14 +3,15 @@ package artist
 import (
 	"bufio"
 	"encoding/json"
+	"github.com/RubenPari/feat-eminem/database"
+	"github.com/RubenPari/feat-eminem/models"
+	"github.com/RubenPari/feat-eminem/modules"
+	"github.com/zmb3/spotify/v2"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
-
-	"github.com/RubenPari/feat-eminem/models"
-	"github.com/RubenPari/feat-eminem/modules"
-	"github.com/zmb3/spotify/v2"
 )
 
 func Add(w http.ResponseWriter, r *http.Request) {
@@ -46,25 +47,25 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	// check if file was created
 
-	var dataWritted int
+	var dataWritten int
 	scanner := bufio.NewScanner(file)
 
-	// TODO: dosen't work
+	// TODO: doesn't work
 	for scanner.Scan() {
 		if scanner.Text() == "" {
 			// create the first line file csv
-			file.WriteString("Id," + "Uri," + "Name" + "\n")
+			_, _ = file.WriteString("Id," + "Uri," + "Name" + "\n")
 			break
 		}
 	}
 
-	dataWritted, _ = file.WriteString(string(artist.Id) + "," + string(artist.Uri) + "," + artist.Name + "\n")
+	dataWritten, _ = file.WriteString(string(artist.Id) + "," + string(artist.Uri) + "," + artist.Name + "\n")
 
-	file.Close()
+	_ = file.Close()
 
 	var response map[string]string
 
-	if dataWritted == 0 {
+	if dataWritten == 0 {
 		response = map[string]string{
 			"status":  "error",
 			"message": "error to write row in file",
@@ -77,6 +78,51 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+// Modify TODO: change db to file
+func Modify(w http.ResponseWriter, r *http.Request) {
+	// get artist
+	bytesBody, _ := ioutil.ReadAll(r.Body)
+	var artist models.ArtistRelated
+	err := json.Unmarshal(bytesBody, &artist)
+	if err != nil {
+		panic(err)
+	}
+
+	// edit artist
+	edited := database.EditArtist(&artist)
+	if edited {
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "artist edited",
+		})
+	} else {
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status":  "error",
+			"message": "error to edit artist",
+		})
+	}
+}
+
+// Delete TODO: change db to file
+func Delete(w http.ResponseWriter, r *http.Request) {
+	// get artist id
+	var id = r.URL.Query().Get("id")
+
+	// delete artist
+	deleted := database.DeleteArtist(id)
+	if deleted {
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "artist deleted",
+		})
+	} else {
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status":  "error",
+			"message": "error to delete artist",
+		})
+	}
 }
 
 func GetAllSongs(w http.ResponseWriter, r *http.Request) {

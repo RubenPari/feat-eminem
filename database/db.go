@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/RubenPari/feat-eminem/models"
+	"github.com/zmb3/spotify/v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -22,10 +23,10 @@ func AddArtist(artist *models.ArtistRelated) bool {
 	return true
 }
 
-func removeArtist(artist *models.ArtistRelated) bool {
+func removeArtist(id spotify.ID) bool {
 	var founded models.ArtistRelated
 
-	db.Find(&founded, artist.ID)
+	db.Find(&founded, id)
 
 	if founded.ID == 0 {
 		return false
@@ -48,10 +49,10 @@ func EditArtist(artist *models.ArtistRelated) bool {
 	}
 }
 
-func DeleteArtist(artist *models.ArtistRelated) bool {
+func DeleteArtist(id string) bool {
 	var founded models.ArtistRelated
 
-	db.Find(&founded, artist.ID)
+	db.Find(&founded, id)
 
 	if founded.ID == 0 {
 		return false
