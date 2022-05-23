@@ -1,88 +1,55 @@
-package artist
+package related_artist
 
 import (
-	"bufio"
 	"encoding/json"
-	"github.com/RubenPari/feat-eminem/database"
 	"github.com/RubenPari/feat-eminem/models"
 	"github.com/RubenPari/feat-eminem/modules"
 	"github.com/zmb3/spotify/v2"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
-	"path"
 )
 
 func Add(w http.ResponseWriter, r *http.Request) {
 	spotifyClient, ctx := modules.GetSpotifyClient()
 
-	// get name artist
+	// get name related-artist
 	name := r.URL.Query().Get("name")
 
-	// search artist
+	// search related-artist
 	artistApi, err := spotifyClient.Search(ctx, name, spotify.SearchTypeArtist)
 
 	if err != nil || artistApi == nil {
-		log.Fatalf("couldn't get artist information: %v", err)
+		log.Fatalf("couldn't get related-artist information: %v", err)
 	}
 
-	artist := models.Artist{
-		Id:   artistApi.Artists.Artists[0].ID,
-		Uri:  artistApi.Artists.Artists[0].URI,
-		Name: artistApi.Artists.Artists[0].Name,
+	artist := models.ArtistRelated{
+		Id:       artistApi.Artists.Artists[0].ID,
+		Name:     artistApi.Artists.Artists[0].Name,
+		Category: artistApi.Artists.Artists[0].Genres,
 	}
 
-	// add artist to file
-
-	// get base directory
-	currentDir, _ := os.Getwd()
-	filePath := path.Join(currentDir, "artist.csv")
-
-	// create or open file
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
-	if err != nil {
-		panic(err)
-	}
-
-	// check if file was created
-
-	var dataWritten int
-	scanner := bufio.NewScanner(file)
-
-	// TODO: doesn't work
-	for scanner.Scan() {
-		if scanner.Text() == "" {
-			// create the first line file csv
-			_, _ = file.WriteString("Id," + "Uri," + "Name" + "\n")
-			break
-		}
-	}
-
-	dataWritten, _ = file.WriteString(string(artist.Id) + "," + string(artist.Uri) + "," + artist.Name + "\n")
-
-	_ = file.Close()
+	written := modules.AddArtist(&artist)
 
 	var response map[string]string
 
-	if dataWritten == 0 {
+	if written {
 		response = map[string]string{
-			"status":  "error",
-			"message": "error to write row in file",
+			"status":  "success",
+			"message": "related-artist saved on file",
 		}
 	} else {
 		response = map[string]string{
-			"status":  "success",
-			"message": "artist saved on file",
+			"status":  "error",
+			"message": "error to write row in file",
 		}
 	}
 
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-// Modify TODO: change db to file
 func Modify(w http.ResponseWriter, r *http.Request) {
-	// get artist
+	// get related-artist
 	bytesBody, _ := ioutil.ReadAll(r.Body)
 	var artist models.ArtistRelated
 	err := json.Unmarshal(bytesBody, &artist)
@@ -90,37 +57,36 @@ func Modify(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	// edit artist
-	edited := database.EditArtist(&artist)
+	edited := modules.EditArtist(&artist)
+
 	if edited {
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",
-			"message": "artist edited",
+			"message": "related-artist edited",
 		})
 	} else {
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"status":  "error",
-			"message": "error to edit artist",
+			"message": "error to edit related-artist",
 		})
 	}
 }
 
-// Delete TODO: change db to file
 func Delete(w http.ResponseWriter, r *http.Request) {
-	// get artist id
+	// get related-artist id
 	var id = r.URL.Query().Get("id")
 
-	// delete artist
-	deleted := database.DeleteArtist(id)
+	deleted := modules.DeleteArtist(id)
+
 	if deleted {
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",
-			"message": "artist deleted",
+			"message": "related-artist deleted",
 		})
 	} else {
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"status":  "error",
-			"message": "error to delete artist",
+			"message": "error to delete related-artist",
 		})
 	}
 }
@@ -128,15 +94,15 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 func GetAllSongs(w http.ResponseWriter, r *http.Request) {
 	clientSpotify, ctx := modules.GetSpotifyClient()
 
-	// get name artist
+	// get name related-artist
 	name := r.URL.Query().Get("name")
 	artist, _ := clientSpotify.Search(ctx, name, spotify.SearchTypeArtist)
 	artistSpotObj := artist.Artists.Artists[0]
 
-	// get all album of artist
+	// get all album of related-artist
 	albums, err := clientSpotify.GetArtistAlbums(ctx, artistSpotObj.ID, []spotify.AlbumType{1, 2})
 	if err != nil || albums == nil {
-		log.Fatalf("couldn't get artist albums: %v", err)
+		log.Fatalf("couldn't get related-artist albums: %v", err)
 	}
 
 	var albumsArtist []models.Album
