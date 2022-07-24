@@ -6,9 +6,11 @@ import (
 	"os"
 
 	routers "github.com/RubenPari/feat-eminem/routes"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 
 	server := http.ListenAndServe(":"+os.Getenv("PORT_SERVER"), routers.GetRouter())
 	if server != nil {
