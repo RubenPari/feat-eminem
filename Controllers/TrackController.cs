@@ -1,0 +1,57 @@
+using Microsoft.AspNetCore.Mvc;
+using SpotifyAPI.Web;
+
+namespace YourNamespace.Controllers
+{
+    [ApiController]
+    [Route("[controller]")]
+    public class TrackController : ControllerBase
+    {
+        private readonly IConfiguration _config;
+        private readonly DatabaseContext _db;
+
+        public TrackController(IConfiguration config, DatabaseContext db)
+        {
+            _config = config;
+            _db = db;
+        }
+
+        // POST: /add/{id}
+        [HttpPost("add/{id}")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> AddAsync(string id)
+        {
+            // TODO: mapped widdleware for check if the user is logged in
+
+            var spotify = new SpotifyClient(
+                HttpContext.Session.GetString("AccessToken")!);
+
+            var track = await spotify.Tracks.Get(id);
+
+            if (track == null)
+            {
+                return NotFound("Track with given id not found");
+            }
+
+            // save track to db
+            await _db.Tracks.AddAsync(new Track
+            {
+                Id = track.Id,
+                Name = track.Name,
+                Artist = track.Artists[0].Name,
+                Album = track.Album.Name,
+                SpotifyUrl = track.ExternalUrls["spotify"]
+            });
+
+            var saved = await _db.SaveChangesAsync();
+
+            if (saved == 0)
+            {
+                return BadRequest("Track could not be saved");
+            }
+
+            return CreatedAtAction("Track added successfully", track);
+        }
+    }
+}
