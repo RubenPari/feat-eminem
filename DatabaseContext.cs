@@ -1,18 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 
-public class DatabaseContext : DbContext
+namespace feat_eminem
 {
-    private readonly IConfiguration _config;
-
-    public DbSet<Track> Tracks { get; set; }
-
-    public DatabaseContext(DbContextOptions<DatabaseContext> options, IConfiguration config) : base(options)
+    public class DatabaseContext : DbContext
     {
-        _config = config;
-    }
+        private readonly IConfiguration _config;
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseNpgsql(_config.GetConnectionString("DefaultConnection"));
+        public DbSet<Track>? Tracks { get; set; }
+
+        public DatabaseContext(DbContextOptions<DatabaseContext> options, IConfiguration config) : base(options)
+        {
+            _config = config;
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseNpgsql(_config.GetConnectionString("DefaultConnection"));
+        }
     }
 }
