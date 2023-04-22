@@ -1,10 +1,9 @@
 using System.Net.Http.Headers;
 using System.Text;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 
-namespace YourNamespace.Controllers
+namespace feat_eminem.Controllers
 {
     [ApiController]
     [Route("[controller]")]
