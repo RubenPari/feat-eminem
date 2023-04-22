@@ -9,11 +9,21 @@ namespace feat_eminem.Controllers
     [Route("[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IConfiguration _config;
+        private readonly string _baseUrlAuth;
+        private readonly string _clientId;
+        private readonly string _clientSecret;
+        private readonly string _redirectUri;
+        private readonly string _scopes;
+        private readonly string _baseUrlToken;
 
-        public AuthController(IConfiguration config)
+        public AuthController()
         {
-            _config = config;
+            _baseUrlAuth = Environment.GetEnvironmentVariable("BASE_URL_AUTH")!;
+            _clientId = Environment.GetEnvironmentVariable("CLIENT_ID")!;
+            _clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET")!;
+            _redirectUri = Environment.GetEnvironmentVariable("REDIRECT_URI")!;
+            _scopes = Environment.GetEnvironmentVariable("SCOPES")!;
+            _baseUrlToken = Environment.GetEnvironmentVariable("BASE_URL_TOKEN")!;
         }
 
         [HttpGet("login")]
@@ -26,12 +36,12 @@ namespace feat_eminem.Controllers
             HttpContext.Session.SetString("State", state);
 
             // create the url for authentication spotify and redirect to it
-            var url = _config["BaseUrlAuth"] +
-                "?client_id=" + _config["ClientId"] +
-                "&response_type=code" +
-                "&redirect_uri=" + _config["RedirectUri"] +
-                "&scope=" + _config["Scopes"] +
-                "&state" + state;
+            var url = _baseUrlAuth +
+                      "?client_id=" + _clientId +
+                      "&response_type=code" +
+                      "&redirect_uri=" + _redirectUri +
+                      "&scope=" + _scopes +
+                      "&state" + state;
 
             return Redirect(url);
         }
@@ -52,7 +62,7 @@ namespace feat_eminem.Controllers
             var form = new Dictionary<string, string>
             {
                 { "code", code },
-                { "redirect_uri", _config["RedirectUri"]! },
+                { "redirect_uri", _redirectUri },
                 { "grant_type", "authorization_code" }
             };
 
@@ -61,10 +71,10 @@ namespace feat_eminem.Controllers
                 "Basic",
                 Convert.ToBase64String(
                     Encoding.UTF8.GetBytes(
-                        $"{_config["ClientId"]}:{_config["ClientSecret"]}")));
+                        $"{_clientId}:{_clientSecret}")));
 
             // send request
-            var response = await client.PostAsync(_config["BaseUrlToken"], new FormUrlEncodedContent(form));
+            var response = await client.PostAsync(_baseUrlToken, new FormUrlEncodedContent(form));
 
             // read response
             var responseString = await response.Content.ReadAsStringAsync();

@@ -1,3 +1,4 @@
+using feat_eminem.Models;
 using Microsoft.AspNetCore.Mvc;
 using SpotifyAPI.Web;
 
@@ -14,7 +15,6 @@ namespace feat_eminem.Controllers
             _db = db;
         }
 
-        // POST: /add/{id}
         [HttpPost("add/{id}")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
