@@ -22,8 +22,6 @@ public class TrackController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddAsync(string id)
     {
-        // TODO: mapped middleware for check if the user is logged in
-
         var spotify = new SpotifyClient(
             HttpContext.Session.GetString("AccessToken")!);
 
