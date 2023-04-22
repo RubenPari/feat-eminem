@@ -1,0 +1,1 @@
+﻿web: aspnetcore --urls https://0.0.0.0:3000 app.dll
