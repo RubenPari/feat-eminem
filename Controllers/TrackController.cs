@@ -1,18 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
 using SpotifyAPI.Web;
 
-namespace YourNamespace.Controllers
+namespace feat_eminem.Controllers
 {
     [ApiController]
     [Route("[controller]")]
     public class TrackController : ControllerBase
     {
-        private readonly IConfiguration _config;
         private readonly DatabaseContext _db;
 
-        public TrackController(IConfiguration config, DatabaseContext db)
+        public TrackController(DatabaseContext db)
         {
-            _config = config;
             _db = db;
         }
 
@@ -22,7 +20,7 @@ namespace YourNamespace.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddAsync(string id)
         {
-            // TODO: mapped widdleware for check if the user is logged in
+            // TODO: mapped middleware for check if the user is logged in
 
             var spotify = new SpotifyClient(
                 HttpContext.Session.GetString("AccessToken")!);
@@ -35,7 +33,7 @@ namespace YourNamespace.Controllers
             }
 
             // save track to db
-            await _db.Tracks.AddAsync(new Track
+            await _db.Tracks!.AddAsync(new Track
             {
                 Id = track.Id,
                 Name = track.Name,
@@ -51,7 +49,7 @@ namespace YourNamespace.Controllers
                 return BadRequest("Track could not be saved");
             }
 
-            return CreatedAtAction("Track added successfully", track);
+            return Created("Track added successfully", track);
         }
     }
 }
