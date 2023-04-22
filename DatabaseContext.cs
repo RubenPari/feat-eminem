@@ -5,15 +5,17 @@ namespace feat_eminem
 {
     public class DatabaseContext : DbContext
     {
+        private readonly IConfiguration _config;
         public DbSet<Track>? Tracks { get; set; }
 
-        public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options)
+        public DatabaseContext(DbContextOptions<DatabaseContext> options, IConfiguration config) : base(options)
         {
+            _config = config;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")!);
+            optionsBuilder.UseNpgsql(_config["ConnectionString"]);
         }
     }
 }
