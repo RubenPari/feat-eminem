@@ -104,4 +104,56 @@ public class TrackController : ControllerBase
 
         return Ok("Track deleted successfully");
     }
+
+    [HttpGet("get-all/artist/{artistId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAllByArtistAsync(string artistId)
+    {
+        var tracks = await _db.Tracks!.Where(t => t.Id == artistId).ToArrayAsync();
+
+        if (tracks.Length == 0)
+        {
+            return NotFound("Tracks with given artist id not found");
+        }
+
+        return Ok(tracks);
+    }
+
+    [HttpGet("get-all/popular/{score}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAllPopularAsync(int score)
+    {
+        // check if popularity param is valid
+        if (score is < 0 or > 100)
+        {
+            return BadRequest("Popularity param must be between 0 and 100");
+        }
+
+        var tracks = await _db.Tracks!.ToArrayAsync();
+
+        var trackFilter = new List<Track>();
+
+        var spotify = new SpotifyClient(
+            HttpContext.Session.GetString("AccessToken")!);
+
+        // filter all tracks in db by popularity param
+        foreach (var trackDb in tracks)
+        {
+            var track = await spotify.Tracks.Get(trackDb.Id!);
+
+            if (track.Popularity >= score)
+            {
+                trackFilter.Add(trackDb);
+            }
+        }
+
+        if (trackFilter.Count == 0)
+        {
+            return NotFound("Tracks with given popularity not found");
+        }
+
+        return Ok(trackFilter);
+    }
 }
