@@ -9,4 +9,5 @@ public class Track
     [Required] public string? Artist { get; set; }
     [Required] public string? Album { get; set; }
     [Required] public string? SpotifyUrl { get; set; }
+    [Required] public int? Popularity { get; set; }
 }
