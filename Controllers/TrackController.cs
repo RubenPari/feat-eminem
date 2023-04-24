@@ -1,20 +1,22 @@
-using Microsoft.EntityFrameworkCore;
-
 namespace feat_eminem.Controllers;
 
 using Models;
 using Microsoft.AspNetCore.Mvc;
-using SpotifyAPI.Web;
+using System.Net.Http.Headers;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 
 [ApiController]
 [Route("[controller]")]
 public class TrackController : ControllerBase
 {
     private readonly DatabaseContext _db;
+    private readonly IConfiguration _config;
 
-    public TrackController(DatabaseContext db)
+    public TrackController(DatabaseContext db, IConfiguration config)
     {
         _db = db;
+        _config = config;
     }
 
     [HttpPost("add/{id}")]
@@ -22,27 +24,34 @@ public class TrackController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddAsync(string id)
     {
-        var spotify = new SpotifyClient(
-            HttpContext.Session.GetString("AccessToken")!);
+        var client = new HttpClient();
 
-        var track = await spotify.Tracks.Get(id);
+        // set up headers
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            HttpContext.Session.GetString("AccessToken")!
+        );
 
-        // check if url parameter is valid
-        // for make sure that the track is
-        // valid
-        if (!track.Uri.Contains("https://open.spotify.com/track/"))
+        var url = _config["BaseUrl"] + "/tracks/" + id;
+
+        var response = await client.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode)
         {
-            return BadRequest("Track with given id not found");
+            return BadRequest("Track could not be added");
         }
 
-        // save track to db
+        var stringResponse = await response.Content.ReadAsStringAsync();
+
+        var jsonResponse = JObject.Parse(stringResponse);
+
         await _db.Tracks!.AddAsync(new Track
         {
-            Id = track.Id,
-            Name = track.Name,
-            Artist = track.Artists[0].Name,
-            Album = track.Album.Name,
-            SpotifyUrl = track.ExternalUrls["spotify"]
+            Id = jsonResponse["id"]!.ToString(),
+            Name = jsonResponse["name"]!.ToString(),
+            Artist = jsonResponse["artists"]![0]!["name"]!.ToString(),
+            Album = jsonResponse["album"]!["name"]!.ToString(),
+            SpotifyUrl = jsonResponse["external_urls"]!["spotify"]!.ToString()
         });
 
         var saved = await _db.SaveChangesAsync();
@@ -52,7 +61,7 @@ public class TrackController : ControllerBase
             return BadRequest("Track could not be saved");
         }
 
-        return Created("Track added successfully", track);
+        return Created("Track added successfully", jsonResponse["id"]!.ToString());
     }
 
     [HttpGet("get/{id}")]
@@ -118,7 +127,7 @@ public class TrackController : ControllerBase
         return Ok(tracks);
     }
 
-    [HttpGet("get-all/popular/{score}")]
+    [HttpGet("get-all/popular/{score:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAllPopularAsync(int score)
@@ -131,27 +140,13 @@ public class TrackController : ControllerBase
 
         var tracks = await _db.Tracks!.ToArrayAsync();
 
-        var trackFilter = new List<Track>();
-
-        var spotify = new SpotifyClient(
-            HttpContext.Session.GetString("AccessToken")!);
-
-        // filter all tracks in db by popularity param
-        foreach (var trackDb in tracks)
-        {
-            var track = await spotify.Tracks.Get(trackDb.Id!);
-
-            if (track.Popularity >= score)
-            {
-                trackFilter.Add(trackDb);
-            }
-        }
-
+        var trackFilter = tracks.Where(track => track.Popularity >= score).ToList();
+        
         if (trackFilter.Count == 0)
         {
             return NotFound("Tracks with given popularity not found");
         }
-
+        
         return Ok(trackFilter);
     }
 }
