@@ -8,7 +8,7 @@ public class Playlist
 {
     private readonly IConfiguration? _config;
     private readonly HttpClient? _client;
-    
+
     private Playlist(string accessToken, IConfiguration? config)
     {
         _config = config;
@@ -22,24 +22,48 @@ public class Playlist
             accessToken
         );
     }
-    
-    public JObject GetAll(string idPlaylist)
+
+    public JArray GetAll(string idPlaylist)
     {
-        // set-up url
-        var url = _config!["BaseUrl"] + "/playlists/" + idPlaylist + "/tracks";
+        var totalTracks = new JArray();
 
-        var response = _client!.GetAsync(url).Result;
+        const int limit = 50;
+        var offset = 0;
 
-        if (!response.IsSuccessStatusCode)
+        string stringResponse;
+
+        do
         {
-            return JObject.Parse("{'error': 'Could not get tracks from playlist'}");
-        }
+            // set-up url with limit and offset
+            var url = _config!["BaseUrl"] + "/playlists/" + idPlaylist + "/tracks" + "?limit=" + limit + "&offset=" +
+                      offset;
 
-        var stringResponse = response.Content.ReadAsStringAsync().Result;
+            var response = _client!.GetAsync(url).Result;
 
-        return JObject.Parse(stringResponse);
+            if (!response.IsSuccessStatusCode)
+            {
+                // return an array with 1 element
+                // with error message
+                return new JArray
+                {
+                    new JObject
+                    {
+                        { "error", "Could not get tracks from playlist" }
+                    }
+                };
+            }
+
+            stringResponse = response.Content.ReadAsStringAsync().Result;
+
+            // add partial tracks to totalTracks
+            totalTracks.Merge(JObject.Parse(stringResponse)["items"]!);
+
+            // increment offset
+            offset += limit;
+        } while (offset < JObject.Parse(stringResponse)["total"]!.Value<int>());
+
+        return totalTracks;
     }
-
 
     /**
      * Delete all tracks in
@@ -49,35 +73,67 @@ public class Playlist
     public bool DeleteAll(string id)
     {
         // get all track from playlist with myself class method
-        var tracksJson = GetAll(id)["items"]!;
+        var tracksTotal = GetAll(id);
 
-        // create request body in json format for delete request
-        var tracks = new JArray();
+        var limit = 100;
+        var offset = 0;
 
-        foreach (var track in tracksJson)
+        // create an array with 100 tracks and
+        // offset 0, 100, 200, 300, ...
+        do
         {
-            tracks.Add(new JObject
+            var tracksPartial = new JArray();
+
+            // add 100 tracks to tracksPartial
+            var i = offset;
+            while (i < limit + offset)
             {
-                { "uri", track["track"]!["uri"]! }
-            });
-        }
+                if (tracksTotal.Count == 0)
+                {
+                    break;
+                }
 
-        var requestBody = new JObject
-        {
-            { "tracks", tracks }
-        };
+                tracksPartial.Add(tracksTotal[i]);
+                tracksTotal.RemoveAt(i);
 
-        var url = _config!["BaseUrl"] + "/playlists/" + id + "/tracks";
-        
-        var requestDeleteTracks = new HttpRequestMessage
-        {
-            Method = HttpMethod.Delete,
-            RequestUri = new Uri(url),
-            Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json")
-        };
-        
-        var responseDeleteTracks = _client!.SendAsync(requestDeleteTracks).Result;
-        
-        return responseDeleteTracks.IsSuccessStatusCode;
+                i++;
+            }
+
+            // create request body in json format for delete request
+            var tracksBody = new JArray();
+
+            foreach (var track in tracksPartial)
+            {
+                tracksBody.Add(new JObject
+                {
+                    { "uri", track["track"]!["uri"]! }
+                });
+            }
+
+            var requestBody = new JObject
+            {
+                { "tracks", tracksBody }
+            };
+
+            var url = _config!["BaseUrl"] + "/playlists/" + id + "/tracks";
+
+            var requestDeleteTracks = new HttpRequestMessage
+            {
+                Method = HttpMethod.Delete,
+                RequestUri = new Uri(url),
+                Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json")
+            };
+
+            var responseDeleteTracks = _client!.SendAsync(requestDeleteTracks).Result;
+
+            if (!responseDeleteTracks.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            offset += limit;
+        } while (tracksTotal.Count > 0);
+
+        return true;
     }
 }
