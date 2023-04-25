@@ -33,8 +33,8 @@ public class CheckAuth
 
 public static class CheckAuthExtensions
 {
-    public static IApplicationBuilder UseCheckAuthMiddleware(this IApplicationBuilder builder)
+    public static void UseCheckAuthMiddleware(this IApplicationBuilder builder)
     {
-        return builder.UseMiddleware<CheckAuth>();
+        builder.UseMiddleware<CheckAuth>();
     }
 }
