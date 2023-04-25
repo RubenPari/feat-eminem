@@ -1,7 +1,5 @@
-﻿using System.Net.Http.Headers;
-using System.Text;
+﻿using feat_eminem.Lib.Client;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
 
 namespace feat_eminem.Controllers;
 
@@ -10,10 +8,12 @@ namespace feat_eminem.Controllers;
 public class PlaylistController : ControllerBase
 {
     private readonly IConfiguration _config;
+    private readonly DatabaseContext _db;
 
-    public PlaylistController(IConfiguration config)
+    public PlaylistController(IConfiguration config, DatabaseContext db)
     {
         _config = config;
+        _db = db;
     }
 
     /**
@@ -21,67 +21,41 @@ public class PlaylistController : ControllerBase
      * specified playlist
      */
     [HttpDelete("clear-all")]
-    public async Task<IActionResult> ClearAll()
+    public Task<IActionResult> ClearAll()
     {
-        var accessToken = HttpContext.Session.GetString("AccessToken")!;
+        var clientPlaylist = new PlaylistClient(HttpContext.Session.GetString("AccessToken")!, _config);
 
-        var client = new HttpClient();
+        var deletedTracks = clientPlaylist.DeleteAll();
 
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
-        );
+        return !deletedTracks
+            ? Task.FromResult<IActionResult>(BadRequest("Tracks could not be deleted"))
+            : Task.FromResult<IActionResult>(Ok("Tracks deleted"));
+    }
 
-        var urlGetTracks = _config["BaseUrl"] + "/playlists/" + _config["PlaylistId"] + "/tracks";
+    /**
+     * sync all tracks saved
+     * in database with
+     * specified playlist
+     */
+    [HttpPut("sync")]
+    public IActionResult Sync()
+    {
+        var clientPlaylist = new PlaylistClient(HttpContext.Session.GetString("AccessToken")!, _config);
 
-        // get all from playlist
-        var responseGetTracks = await client.GetAsync(urlGetTracks);
+        var deletedTracks = clientPlaylist.DeleteAll();
 
-        if (!responseGetTracks.IsSuccessStatusCode)
+        if (!deletedTracks)
         {
-            return BadRequest("Could not get tracks from playlist");
+            return BadRequest("Tracks could not be deleted");
         }
 
-        var stringResponseGetTracks = await responseGetTracks.Content.ReadAsStringAsync();
+        // get all tracks from database
+        var tracks = _db.Tracks!.ToArray();
 
-        var jsonResponseGetTracks = JObject.Parse(stringResponseGetTracks);
+        var addedTracks = clientPlaylist.AddAll(tracks);
 
-        var tracksJson = jsonResponseGetTracks["items"]!;
-
-        // create request body in json format for delete request
-        var tracks = new JArray();
-
-        foreach (var track in tracksJson)
-        {
-            tracks.Add(new JObject
-            {
-                { "uri", track["track"]!["uri"]! }
-            });
-        }
-
-        var requestBody = new JObject
-        {
-            { "tracks", tracks }
-        };
-
-        var urlDeleteTracks = _config["BaseUrl"] + "/playlists/" + _config["PlaylistId"] + "/tracks";
-
-        var content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
-
-        var request = new HttpRequestMessage(HttpMethod.Delete, urlDeleteTracks)
-        {
-            Content = content,
-            Method = HttpMethod.Delete,
-            RequestUri = new Uri(urlDeleteTracks)
-        };
-        
-        var responseDeleteTracks = await client.SendAsync(request);
-        
-        if (!responseDeleteTracks.IsSuccessStatusCode)
-        {
-            return BadRequest("Could not delete tracks from playlist");
-        }
-        
-        return Ok("Tracks deleted from playlist");
+        return !addedTracks
+            ? BadRequest("Tracks could not be added")
+            : Ok("Tracks added");
     }
 }
