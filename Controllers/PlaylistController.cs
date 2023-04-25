@@ -21,6 +21,8 @@ public class PlaylistController : ControllerBase
      * specified playlist
      */
     [HttpDelete("clear-all")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public Task<IActionResult> ClearAll()
     {
         var clientPlaylist = new PlaylistClient(HttpContext.Session.GetString("AccessToken")!, _config);
@@ -38,6 +40,8 @@ public class PlaylistController : ControllerBase
      * specified playlist
      */
     [HttpPut("sync")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Sync()
     {
         var clientPlaylist = new PlaylistClient(HttpContext.Session.GetString("AccessToken")!, _config);

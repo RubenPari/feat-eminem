@@ -27,16 +27,18 @@ namespace feat_eminem.Controllers
 
             // create the url for authentication spotify and redirect to it
             var url = _config["BaseUrlAuth"] +
-                "?client_id=" + _config["ClientId"] +
-                "&response_type=code" +
-                "&redirect_uri=" + _config["RedirectUri"] +
-                "&scope=" + _config["Scopes"] +
-                "&state" + state;
+                      "?client_id=" + _config["ClientId"] +
+                      "&response_type=code" +
+                      "&redirect_uri=" + _config["RedirectUri"] +
+                      "&scope=" + _config["Scopes"] +
+                      "&state" + state;
 
             return Redirect(url);
         }
 
         [HttpGet("callback")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Callback(string code, string state)
         {
             // check if the state is the same as the one generated in the login method
