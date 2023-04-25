@@ -1,10 +1,10 @@
+using feat_eminem.Lib.Client;
+
 namespace feat_eminem.Controllers;
 
 using Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http.Headers;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json.Linq;
 
 [ApiController]
 [Route("[controller]")]
@@ -24,34 +24,17 @@ public class TrackController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddAsync(string id)
     {
-        var client = new HttpClient();
+        var trackClient = new TrackClient(HttpContext.Session.GetString("AccessToken")!, _config);
 
-        // set up headers
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            HttpContext.Session.GetString("AccessToken")!
-        );
-
-        var url = _config["BaseUrl"] + "/tracks/" + id;
-
-        var response = await client.GetAsync(url);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return BadRequest("Track could not be added");
-        }
-
-        var stringResponse = await response.Content.ReadAsStringAsync();
-
-        var jsonResponse = JObject.Parse(stringResponse);
+        var trackJson = await trackClient.GetOne(id);
 
         await _db.Tracks!.AddAsync(new Track
         {
-            Id = jsonResponse["id"]!.ToString(),
-            Name = jsonResponse["name"]!.ToString(),
-            Artist = jsonResponse["artists"]![0]!["name"]!.ToString(),
-            Album = jsonResponse["album"]!["name"]!.ToString(),
-            SpotifyUrl = jsonResponse["external_urls"]!["spotify"]!.ToString()
+            Id = trackJson["id"]!.ToString(),
+            Name = trackJson["name"]!.ToString(),
+            Artist = trackJson["artists"]![0]!["name"]!.ToString(),
+            Album = trackJson["album"]!["name"]!.ToString(),
+            SpotifyUrl = trackJson["external_urls"]!["spotify"]!.ToString()
         });
 
         var saved = await _db.SaveChangesAsync();
@@ -61,7 +44,7 @@ public class TrackController : ControllerBase
             return BadRequest("Track could not be saved");
         }
 
-        return Created("Track added successfully", jsonResponse["id"]!.ToString());
+        return Created("Track added successfully", trackJson["id"]!.ToString());
     }
 
     [HttpGet("get/{id}")]
@@ -141,12 +124,12 @@ public class TrackController : ControllerBase
         var tracks = await _db.Tracks!.ToArrayAsync();
 
         var trackFilter = tracks.Where(track => track.Popularity >= score).ToList();
-        
+
         if (trackFilter.Count == 0)
         {
             return NotFound("Tracks with given popularity not found");
         }
-        
+
         return Ok(trackFilter);
     }
 }
