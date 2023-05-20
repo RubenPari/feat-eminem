@@ -1,21 +1,23 @@
 using feat_eminem.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace feat_eminem
+namespace feat_eminem;
+
+public class DatabaseContext : DbContext
 {
-    public class DatabaseContext : DbContext
+    private readonly IConfiguration _config;
+    public DbSet<Track>? Tracks { get; set; }
+
+    public DatabaseContext(DbContextOptions<DatabaseContext> options, IConfiguration config) : base(options)
     {
-        private readonly IConfiguration _config;
-        public DbSet<Track>? Tracks { get; set; }
+        _config = config;
+    }
 
-        public DatabaseContext(DbContextOptions<DatabaseContext> options, IConfiguration config) : base(options)
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
         {
-            _config = config;
-        }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseNpgsql(_config["ConnectionString"]);
+            optionsBuilder.UseNpgsql(_config["ConnectionDb"]);
         }
     }
 }

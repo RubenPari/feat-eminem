@@ -10,10 +10,12 @@ namespace feat_eminem.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _config;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IConfiguration config)
+        public AuthController(IConfiguration config, ILogger<AuthController> logger)
         {
             _config = config;
+            _logger = logger;
         }
 
         [HttpGet("login")]
@@ -25,6 +27,8 @@ namespace feat_eminem.Controllers
             // save state in the session
             HttpContext.Session.SetString("State", state);
 
+            _logger.LogInformation("State: {State}", state);
+
             // create the url for authentication spotify and redirect to it
             var url = _config["BaseUrlAuth"] +
                       "?client_id=" + _config["ClientId"] +
@@ -32,7 +36,9 @@ namespace feat_eminem.Controllers
                       "&redirect_uri=" + _config["RedirectUri"] +
                       "&scope=" + _config["Scopes"] +
                       "&state" + state;
-
+            
+            _logger.LogInformation("Redirecting to: {Url}", url);
+            
             return Redirect(url);
         }
 
@@ -46,6 +52,8 @@ namespace feat_eminem.Controllers
             {
                 return BadRequest("State is not valid");
             }
+            
+            _logger.LogInformation("Status is valid");
 
             // create request to get the token
             var client = new HttpClient();
@@ -67,7 +75,9 @@ namespace feat_eminem.Controllers
 
             // send request
             var response = await client.PostAsync(_config["BaseUrlToken"], new FormUrlEncodedContent(form));
-
+            
+            _logger.LogInformation("Sending request to: {Url}", _config["BaseUrlToken"]);
+            
             // read response
             var responseString = await response.Content.ReadAsStringAsync();
 
@@ -77,7 +87,9 @@ namespace feat_eminem.Controllers
 
             // save access token in the session
             HttpContext.Session.SetString("AccessToken", accessToken);
-
+            
+            _logger.LogInformation("Access token: {AccessToken}", accessToken);
+            
             return Ok("Logged in successfully");
         }
     }

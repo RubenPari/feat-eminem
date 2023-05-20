@@ -12,11 +12,13 @@ public class TrackController : ControllerBase
 {
     private readonly DatabaseContext _db;
     private readonly IConfiguration _config;
+    private readonly ILogger<TrackController> _logger;
 
-    public TrackController(DatabaseContext db, IConfiguration config)
+    public TrackController(DatabaseContext db, IConfiguration config, ILogger<TrackController> logger)
     {
         _db = db;
         _config = config;
+        _logger = logger;
     }
 
     [HttpPost("add/{id}")]
@@ -27,6 +29,8 @@ public class TrackController : ControllerBase
         var trackClient = new TrackClient(HttpContext.Session.GetString("AccessToken")!, _config);
 
         var trackJson = await trackClient.GetOne(id);
+
+        _logger.LogInformation("Track: {Track}", trackJson);
 
         await _db.Tracks!.AddAsync(new Track
         {
@@ -44,6 +48,8 @@ public class TrackController : ControllerBase
             return BadRequest("Track could not be saved");
         }
 
+        _logger.LogInformation("Track saved successfully");
+
         return Created("Track added successfully", trackJson["id"]!.ToString());
     }
 
@@ -59,6 +65,8 @@ public class TrackController : ControllerBase
             return NotFound("Track with given id not found");
         }
 
+        _logger.LogInformation("Track: {Track}", track);
+
         return Ok(track);
     }
 
@@ -66,7 +74,9 @@ public class TrackController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync()
     {
-        var tracks = await _db.Tracks!.ToArrayAsync();
+        object?[] tracks = await _db.Tracks!.ToArrayAsync();
+
+        _logger.LogInformation("Tracks: {Tracks}", tracks);
 
         return Ok(tracks);
     }
@@ -83,6 +93,8 @@ public class TrackController : ControllerBase
             return NotFound("Track with given id not found");
         }
 
+        _logger.LogInformation("Track found: {Track}", track);
+
         _db.Tracks!.Remove(track);
 
         var deleted = await _db.SaveChangesAsync();
@@ -92,6 +104,8 @@ public class TrackController : ControllerBase
             return BadRequest("Track could not be deleted");
         }
 
+        _logger.LogInformation("Track deleted successfully");
+
         return Ok("Track deleted successfully");
     }
 
@@ -100,12 +114,14 @@ public class TrackController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAllByArtistAsync(string artistId)
     {
-        var tracks = await _db.Tracks!.Where(t => t.Id == artistId).ToArrayAsync();
+        object?[] tracks = await _db.Tracks!.Where(t => t.Id == artistId).ToArrayAsync();
 
         if (tracks.Length == 0)
         {
             return NotFound("Tracks with given artist id not found");
         }
+
+        _logger.LogInformation("Tracks: {Tracks}", tracks);
 
         return Ok(tracks);
     }
@@ -124,6 +140,8 @@ public class TrackController : ControllerBase
         var tracks = await _db.Tracks!.ToArrayAsync();
 
         var trackFilter = tracks.Where(track => track.Popularity >= score).ToList();
+
+        _logger.LogInformation("Filtered tracks: {Tracks}", trackFilter);
 
         if (trackFilter.Count == 0)
         {
