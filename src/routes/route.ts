@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import authController from '../controllers/authController';
+import featEminemController from '../controllers/featEminemController';
 
 const setUpRoutes = async (fastify: FastifyInstance) => {
   // ######## /auth ########
@@ -9,6 +10,12 @@ const setUpRoutes = async (fastify: FastifyInstance) => {
     fastify.get('/logout', authController.logout);
     done();
   }, { prefix: '/auth' });
+
+  // ######## /feat-eminem ########
+  fastify.register((fastify, _opts, done) => {
+    fastify.get('/', featEminemController.featEminem);
+    done();
+  }, { prefix: '/feat-eminem' });
 };
 
 export default setUpRoutes;
