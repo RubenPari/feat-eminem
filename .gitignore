@@ -91,3 +91,8 @@ dist/
 
 # JavaScrip
 *.js
+
+.env*
+.flaskenv*
+!.env.project
+!.env.vault
