@@ -1,10 +1,10 @@
-import fastify from 'fastify';
-import setUpRoutes from './routes/route';
+import fastify from "fastify";
+import setUpRoutes from "./routes/route";
 
 const server = fastify();
 
 setUpRoutes(server).then(() => {
-  console.log('Routes set up successfully');
+  console.log("Routes set up successfully");
 });
 
 server.listen({ port: 3000 }, (err, address) => {

@@ -10,6 +10,6 @@ const loadEnv = () => {
   } catch (e) {
     console.log("Error loading .env file" + e);
   }
-}
+};
 
 export default loadEnv;
