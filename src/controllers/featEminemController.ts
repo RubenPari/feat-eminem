@@ -1,22 +1,56 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import SpotifyApiService from '../services/spotifyApiService';
+import {FastifyRequest, FastifyReply} from 'fastify';
+import {
+    getAllTracksBadMeetsEvil,
+    getAllTracksD12,
+    removeDuplicateTracks,
+    searchTracksEminem,
+    searchTracksFeatEminem,
+    searchTracksWithEminem
+} from '../services/trackService';
 
 const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
-  const client = SpotifyApiService.getInstance().client;
+    // search all tracks with query 'Eminem' and where first artist isn't Eminem
+    const searchTracksEminemResult = (await searchTracksEminem()).map((track) => {
+        return {
+            name: track.name,
+            artists: track.artists
+        };
+    });
+    const searchTracksFeatEminemResult = (await searchTracksFeatEminem()).map((track) => {
+        return {
+            name: track.name,
+            artists: track.artists
+        };
+    });
+    const searchTracksWithEminemResult = (await searchTracksWithEminem()).map((track) => {
+        return {
+            name: track.name,
+            artists: track.artists
+        };
+    });
+    const tracksBadMeetsEvil = (await getAllTracksBadMeetsEvil()).map((track) => {
+        return {
+            name: track.name,
+            artists: track.artists
+        };
+    });
+    const tracksD12 = (await getAllTracksD12()).map((track) => {
+        return {
+            name: track.name,
+            artists: track.artists
+        };
+    });
 
-  // search all tracks with query 'Eminem' and where first artist isn't Eminem
-    const searchTracksEminem = await client.searchTracks('Eminem', { limit: 50 });
-
-    const searchTracksFeatEminem = await client.searchTracks('feat. Eminem', { limit: 50 });
-
-    const searchTracksWithEminem = await client.searchTracks('with Eminem', { limit: 50 });
-
-    const tracks = (searchTracksEminem.body.tracks?.items ?? []).concat(
-        searchTracksFeatEminem.body.tracks?.items ?? [],
-        searchTracksWithEminem.body.tracks?.items ?? [],
+    // combine all search results
+    const tracks = searchTracksEminemResult.concat(
+        searchTracksFeatEminemResult,
+        searchTracksWithEminemResult,
+        tracksBadMeetsEvil,
+        tracksD12
     );
 
-    const filteredTracks = tracks?.filter((track) => {
+    // filter out tracks where Eminem is present but not as first artist
+    const filteredTracks = tracks.filter((track) => {
         return track.artists[0].name !== 'Eminem' && track.artists.find((artist) => artist.name === 'Eminem');
     });
 
@@ -39,5 +73,5 @@ const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
 };
 
 export default {
-  featEminem,
+    featEminem,
 };
