@@ -1,10 +1,13 @@
 import SpotifyWebApi from "spotify-web-api-node";
+import LoadEnv from "../utils/loadEnv";
 
 class SpotifyApiService {
     private static instance: SpotifyApiService;
     public client: SpotifyWebApi;
 
     private constructor() {
+        LoadEnv();
+
         this.client = new SpotifyWebApi({
             clientId: process.env.CLIENT_ID,
             clientSecret: process.env.CLIENT_SECRET,
