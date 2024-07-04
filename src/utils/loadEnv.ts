@@ -6,6 +6,7 @@ const loadEnv = () => {
 
   try {
     require("dotenv").config({ path: envPath });
+    console.log("Environment variables loaded successfully");
   } catch (e) {
     console.log("Error loading .env file" + e);
   }
