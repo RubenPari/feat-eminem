@@ -1,4 +1,6 @@
 import SpotifyApiService from "./spotifyApiService";
+import TrackDto from "../dto/trackDto";
+import convertTracksObjectToDto from "../utils/convertTracksObject";
 
 const client = SpotifyApiService.getInstance().client;
 const INTERNATIONAL_RADIO_EDIT = "International Radio Edit";
@@ -8,10 +10,13 @@ const EDITED = "(Edited)";
 const ACOUSTIC = "Acoustic";
 const INSTRUMENTAL = "Instrumental";
 const NBA_VERSION = "NBA Version";
+const DETRIMENTAL = " Detrimental";
+const CLEAR = "Clear";
 
-export async function searchTracksEminem(): Promise<
-  SpotifyApi.TrackObjectFull[]
-> {
+/**
+ * Search tracks with query string "Eminem"
+ */
+async function searchTracksEminem(): Promise<TrackDto[]> {
   const limit = 50;
   let offset = 0;
   const maxOffset = 1000;
@@ -29,12 +34,13 @@ export async function searchTracksEminem(): Promise<
     offset += limit;
   }
 
-  return tracks;
+  return convertTracksObjectToDto(tracks);
 }
 
-export async function searchTracksFeatEminem(): Promise<
-  SpotifyApi.TrackObjectFull[]
-> {
+/**
+ * Search tracks with query string "feat. Eminem"
+ */
+async function searchTracksFeatEminem(): Promise<TrackDto[]> {
   const limit = 50;
   let offset = 0;
   const maxOffset = 1000;
@@ -52,12 +58,13 @@ export async function searchTracksFeatEminem(): Promise<
     offset += limit;
   }
 
-  return tracks;
+  return convertTracksObjectToDto(tracks);
 }
 
-export async function searchTracksWithEminem(): Promise<
-  SpotifyApi.TrackObjectFull[]
-> {
+/**
+ * Search tracks with query string "with Eminem"
+ */
+async function searchTracksWithEminem(): Promise<TrackDto[]> {
   const limit = 50;
   let offset = 0;
   const maxOffset = 1000;
@@ -75,12 +82,13 @@ export async function searchTracksWithEminem(): Promise<
     offset += limit;
   }
 
-  return tracks;
+  return convertTracksObjectToDto(tracks);
 }
 
-export async function getAllTracksD12(): Promise<
-  SpotifyApi.TrackObjectSimplified[]
-> {
+/**
+ * Get all tracks from D12
+ */
+async function getAllTracksD12(): Promise<TrackDto[]> {
   const d12Artist = await client.searchArtists("D12").then((res) => {
     return res.body.artists!.items[0];
   });
@@ -88,7 +96,7 @@ export async function getAllTracksD12(): Promise<
   // get all albums from D12
   const albums = await client
     .getArtistAlbums(d12Artist.id, {
-      include_groups: "include_groups=album,single",
+      include_groups: "album,single,compilation",
     })
     .then((res) => res.body.items);
 
@@ -103,12 +111,13 @@ export async function getAllTracksD12(): Promise<
     tracks.push(...albumTracks);
   }
 
-  return tracks;
+  return convertTracksObjectToDto(tracks);
 }
 
-export async function getAllTracksBadMeetsEvil(): Promise<
-  SpotifyApi.TrackObjectSimplified[]
-> {
+/**
+ * Get all tracks from Bad Meets Evil
+ */
+async function getAllTracksBadMeetsEvil(): Promise<TrackDto[]> {
   const badMeetsEvilArtist = await client
     .searchArtists("Bad Meets Evil")
     .then((res) => {
@@ -116,11 +125,15 @@ export async function getAllTracksBadMeetsEvil(): Promise<
     });
 
   // get all albums from Bad Meets Evil
-  const albums = await client
+  let albums = await client
     .getArtistAlbums(badMeetsEvilArtist.id, {
-      include_groups: "include_groups=album,single",
+      include_groups: "album,single,compilation",
     })
     .then((res) => res.body.items);
+
+  // remove album with name "Hell: The Sequel"
+  // for leave only "Hell: The Sequel (Deluxe Edition)"
+  albums = albums.filter((album) => album.name !== "Hell: The Sequel");
 
   const tracks = Array<SpotifyApi.TrackObjectSimplified>();
 
@@ -133,21 +146,13 @@ export async function getAllTracksBadMeetsEvil(): Promise<
     tracks.push(...albumTracks);
   }
 
-  return tracks;
+  return convertTracksObjectToDto(tracks);
 }
 
-// remove duplicates based on track name
-export async function removeDuplicateTracks(
-  tracks: {
-    artists: SpotifyApi.ArtistObjectSimplified[];
-    name: string;
-  }[],
-): Promise<
-  {
-    artists: SpotifyApi.ArtistObjectSimplified[];
-    name: string;
-  }[]
-> {
+/**
+ * Remove duplicate tracks based on track name
+ */
+async function removeDuplicateTracks(tracks: TrackDto[]): Promise<TrackDto[]> {
   // filter tracks with extra content in name
   let filteredTracks = tracks.filter((track) => {
     return (
@@ -157,7 +162,9 @@ export async function removeDuplicateTracks(
       !track.name.includes(EDITED) &&
       !track.name.includes(ACOUSTIC) &&
       !track.name.includes(INSTRUMENTAL) &&
-      !track.name.includes(NBA_VERSION)
+      !track.name.includes(NBA_VERSION) &&
+      !track.name.includes(CLEAR) &&
+      !track.name.includes(DETRIMENTAL)
     );
   });
 
@@ -168,12 +175,13 @@ export async function removeDuplicateTracks(
     });
   });
 
-  // remove duplicates based on multiple remastered versions (es "2007 Remaster" and "2005 Remaster") taking the most recent
+  // remove duplicates based on multiple remastered versions
+  // (es "2007 Remaster" and "2005 Remaster" taking "2007 Remaster" only)
   filteredTracks = filteredTracks.filter((track) => {
     return !filteredTracks.find((t) => {
       return (
         t.name.includes("Remaster") &&
-        t.name.includes(track.name) &&
+        track.name.includes("Remaster") &&
         t.name !== track.name
       );
     });
@@ -186,3 +194,12 @@ export async function removeDuplicateTracks(
 
   return filteredTracks;
 }
+
+export {
+  searchTracksEminem,
+  searchTracksFeatEminem,
+  searchTracksWithEminem,
+  getAllTracksD12,
+  getAllTracksBadMeetsEvil,
+  removeDuplicateTracks,
+};
