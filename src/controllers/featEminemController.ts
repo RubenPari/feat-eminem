@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import {
   getAllTracksBadMeetsEvil,
   getAllTracksD12,
+  removeDuplicateTracks,
   searchTracksEminem,
   searchTracksFeatEminem,
   searchTracksWithEminem,
@@ -9,47 +10,17 @@ import {
 
 const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
   // search all tracks with query 'Eminem' and where first artist isn't Eminem
-  const searchTracksEminemResult = (await searchTracksEminem()).map((track) => {
-    return {
-      name: track.name,
-      artists: track.artists,
-    };
-  });
-  const searchTracksFeatEminemResult = (await searchTracksFeatEminem()).map(
-    (track) => {
-      return {
-        name: track.name,
-        artists: track.artists,
-      };
-    },
-  );
-  const searchTracksWithEminemResult = (await searchTracksWithEminem()).map(
-    (track) => {
-      return {
-        name: track.name,
-        artists: track.artists,
-      };
-    },
-  );
-  const tracksBadMeetsEvil = (await getAllTracksBadMeetsEvil()).map((track) => {
-    return {
-      name: track.name,
-      artists: track.artists,
-    };
-  });
-  const tracksD12 = (await getAllTracksD12()).map((track) => {
-    return {
-      name: track.name,
-      artists: track.artists,
-    };
-  });
+  const searchTracksEminemResult = await searchTracksEminem();
+  const searchTracksFeatEminemResult = await searchTracksFeatEminem();
+  const searchTracksWithEminemResult = await searchTracksWithEminem();
 
-  // combine all search results
+  const tracksBadMeetsEvil = await getAllTracksBadMeetsEvil();
+  const tracksD12 = await getAllTracksD12();
+
+  // combine all search results without tracks from Bad Meets Evil and D12
   const tracks = searchTracksEminemResult.concat(
     searchTracksFeatEminemResult,
     searchTracksWithEminemResult,
-    tracksBadMeetsEvil,
-    tracksD12,
   );
 
   // filter out tracks where Eminem is present but not as first artist
@@ -60,10 +31,10 @@ const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
     );
   });
 
-  // remove duplicates based on track name
-  const uniqueTracks = filteredTracks.filter((track, index, self) => {
-    return index === self.findIndex((t) => t.name === track.name);
-  });
+  // added tracks from Bad Meets Evil and D12
+  filteredTracks.push(...tracksBadMeetsEvil, ...tracksD12);
+
+  const uniqueTracks = await removeDuplicateTracks(filteredTracks);
 
   // create a json array with only track name and artist name
   const result = uniqueTracks.map((track) => {
