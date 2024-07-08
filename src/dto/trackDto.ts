@@ -1,4 +1,5 @@
 interface TrackDto {
+  uri: string;
   artists: SpotifyApi.ArtistObjectSimplified[];
   name: string;
 }
