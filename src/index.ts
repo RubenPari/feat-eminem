@@ -1,7 +1,11 @@
 import fastify from "fastify";
 import setUpRoutes from "./routes/route";
+import authMiddleware from "./middlewares/authMiddleware";
 
 const server = fastify();
+
+// set up middleware
+server.addHook("preHandler", authMiddleware);
 
 setUpRoutes(server).then(() => {
   console.log("Routes set up successfully");
