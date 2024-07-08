@@ -7,6 +7,7 @@ function convertTracksObjectToDto(
 ): TrackDto[] {
   return tracksObjects.map((trackObject) => {
     return {
+      uri: trackObject.uri,
       name: trackObject.name,
       artists: trackObject.artists,
     };
