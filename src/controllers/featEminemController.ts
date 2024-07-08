@@ -7,6 +7,7 @@ import {
   searchTracksFeatEminem,
   searchTracksWithEminem,
 } from "../services/trackService";
+import { addTracksToPlaylist } from "../services/playlistService";
 
 const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
   // search all tracks with query 'Eminem' and where first artist isn't Eminem
@@ -36,15 +37,16 @@ const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
 
   const uniqueTracks = await removeDuplicateTracks(filteredTracks);
 
-  // create a json array with only track name and artist name
-  const result = uniqueTracks.map((track) => {
-    return {
-      track: track.name,
-      artist: track.artists[0].name,
-    };
-  });
+  // add tracks to playlist
+  const added = await addTracksToPlaylist(
+    uniqueTracks.map((track) => track.uri),
+  );
 
-  res.status(200).send(result);
+  if (!added) {
+    return res.status(500).send("error to add tracks to playlist");
+  }
+
+  res.status(200).send("tracks added to playlist");
 };
 
 export default {
