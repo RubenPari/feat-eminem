@@ -196,56 +196,53 @@ async function removeDuplicateTracks(tracks: TrackDto[]): Promise<TrackDto[]> {
   return filteredTracks;
 }
 
-async function orderTracksByListeners(tracks: TrackDto[]){
-  const tracksWithViewCount = new Array<{name: string, viewCount: number}>();
-
+async function orderTracksByListeners(tracks: TrackDto[]): Promise<TrackDto[]> {
   const apiKey = process.env.YOUTUBE_API_KEY;
 
   const youtubeApi = google.youtube({
-      version: 'v3',
-      auth: apiKey
+    version: 'v3',
+    auth: apiKey,
   });
 
-  tracks.forEach(async track => {
-    let idVideo = '';
+  const tracksWithViewCount = await Promise.all(tracks.map(async (track) => {
+    try {
+      // Get the video ID for the first search result
+      const searchResponse = await youtubeApi.search.list({
+        part: ['snippet'],
+        q: track.name,
+        type: ['video'],
+        maxResults: 1,
+        order: 'viewCount',
+      });
 
-    youtubeApi.search.list({
-      part: ['snippet'],
-      q: track.name,
-      type: ['video'],
-      maxResults: 1,
-      order: 'viewCount'
-    }, (err, response) => {
-      if (err) {
-        console.error('Errore durante l\'ottenimento delle views della traccia:', track.name);
-        return;
+      const videoId = searchResponse.data.items?.[0]?.id?.videoId || null;
+
+      if (!videoId) {
+        console.error(`Nobody video found for track: ${track.name}`);
+        return { track, viewCount: 0 };
       }
 
-      idVideo = response?.data.items?.[0]?.id?.videoId || '';
-    });
-
-    // get views of the video
-    const videoStatistic = await youtubeApi.videos.list(
-      {
+      // Get the view count for the video
+      const videoResponse = await youtubeApi.videos.list({
         part: ['statistics'],
-        id: [idVideo]
-      },
-      {
-        key: apiKey
-      }
-    );
+        id: [videoId],
+      });
 
-    // get viewCount of the video
-    const viewCount = videoStatistic.data.items?.[0]?.statistics?.viewCount || 0;
+      const viewCount = Number(videoResponse.data.items?.[0]?.statistics?.viewCount || 0);
 
-    // add track to the array used to order the tracks
-    tracksWithViewCount.push({name: track.name, viewCount: Number(viewCount)});
-  });
+      return { track, viewCount };
 
-  // create a new array with the tracks ordered by viewCount
-  return tracksWithViewCount.sort((a, b) => b.viewCount - a.viewCount).map(track => {
-    return tracks.find(t => t.name === track.name);
-  });
+    } catch (error) {
+      console.error(`Error while getting view count for track: ${track.name}`);
+
+      return { track, viewCount: 0 };
+    }
+  }));
+
+  // Ordina le tracce in base al numero di visualizzazioni e mappa ai risultati originali
+  return tracksWithViewCount
+    .sort((a, b) => b.viewCount - a.viewCount)
+    .map(({ track }) => track);
 }
 
 export {
@@ -255,4 +252,5 @@ export {
   getAllTracksD12,
   getAllTracksBadMeetsEvil,
   removeDuplicateTracks,
+  orderTracksByListeners
 };
