@@ -15,8 +15,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@googleapis/docs": "^3.0.2",
     "dotenv": "^16.4.5",
     "fastify": "^4.28.0",
+    "googleapis": "^140.0.1",
     "spotify-web-api-node": "^5.0.2",
     "uuid": "^10.0.0"
   },
