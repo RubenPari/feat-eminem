@@ -1,6 +1,7 @@
 import SpotifyApiService from "./spotifyApiService";
 import TrackDto from "../dto/trackDto";
 import convertTracksObjectToDto from "../utils/convertTracksObject";
+import { google } from "googleapis";
 
 const client = SpotifyApiService.getInstance().client;
 const INTERNATIONAL_RADIO_EDIT = "International Radio Edit";
@@ -193,6 +194,58 @@ async function removeDuplicateTracks(tracks: TrackDto[]): Promise<TrackDto[]> {
   });
 
   return filteredTracks;
+}
+
+async function orderTracksByListeners(tracks: TrackDto[]){
+  const tracksWithViewCount = new Array<{name: string, viewCount: number}>();
+
+  const apiKey = process.env.YOUTUBE_API_KEY;
+
+  const youtubeApi = google.youtube({
+      version: 'v3',
+      auth: apiKey
+  });
+
+  tracks.forEach(async track => {
+    let idVideo = '';
+
+    youtubeApi.search.list({
+      part: ['snippet'],
+      q: track.name,
+      type: ['video'],
+      maxResults: 1,
+      order: 'viewCount'
+    }, (err, response) => {
+      if (err) {
+        console.error('Errore durante l\'ottenimento delle views della traccia:', track.name);
+        return;
+      }
+
+      idVideo = response?.data.items?.[0]?.id?.videoId || '';
+    });
+
+    // get views of the video
+    const videoStatistic = await youtubeApi.videos.list(
+      {
+        part: ['statistics'],
+        id: [idVideo]
+      },
+      {
+        key: apiKey
+      }
+    );
+
+    // get viewCount of the video
+    const viewCount = videoStatistic.data.items?.[0]?.statistics?.viewCount || 0;
+
+    // add track to the array used to order the tracks
+    tracksWithViewCount.push({name: track.name, viewCount: Number(viewCount)});
+  });
+
+  // create a new array with the tracks ordered by viewCount
+  return tracksWithViewCount.sort((a, b) => b.viewCount - a.viewCount).map(track => {
+    return tracks.find(t => t.name === track.name);
+  });
 }
 
 export {
