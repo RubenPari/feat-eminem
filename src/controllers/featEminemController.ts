@@ -23,7 +23,7 @@ const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
   // combine all search results without tracks from Bad Meets Evil and D12
   const tracks = searchTracksEminemResult.concat(
     searchTracksFeatEminemResult,
-    searchTracksWithEminemResult
+    searchTracksWithEminemResult,
   );
 
   // filter out tracks where Eminem is present but not as first artist
@@ -49,7 +49,7 @@ const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
 
   // add tracks to playlist
   const added = await addTracksToPlaylist(
-    orderedTracks.map((track) => track.uri)
+    orderedTracks.map((track) => track.uri),
   );
 
   if (!added) {
