@@ -11,7 +11,7 @@ setUpRoutes(server).then(() => {
   console.log("Routes set up successfully");
 });
 
-server.listen({ port: 3000 }, (err, address) => {
+server.listen({ port: 8080 }, (err, address) => {
   if (err) {
     console.error(err);
     process.exit(1);
