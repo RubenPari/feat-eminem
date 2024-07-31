@@ -2,7 +2,7 @@ import spotifyApiService from "./spotifyApiService";
 import axios from "axios";
 import RemoveAllPlaylistTracksResponse from "../models/RemoveAllPlaylistTracksResponse";
 
-const VERSION_API_CLEAR_SONGS = "v1";
+const VERSION_API_CLEAR_SONGS = "/v1";
 
 async function addTracksToPlaylist(tracks: string[]): Promise<boolean> {
   const limit = 100;
