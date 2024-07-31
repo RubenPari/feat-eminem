@@ -8,8 +8,12 @@ import {
   searchTracksFeatEminem,
   searchTracksWithEminem,
 } from "../services/trackService";
-import { addTracksToPlaylist } from "../services/playlistService";
+import {
+  addTracksToPlaylist,
+  removeAllPlaylistTracks,
+} from "../services/playlistService";
 import TrackDto from "../dto/trackDto";
+import RemoveAllPlaylistTracksResponse from "../models/RemoveAllPlaylistTracksResponse";
 
 const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
   // search all tracks with query 'Eminem' and where first artist isn't Eminem
@@ -39,12 +43,26 @@ const featEminem = async (_req: FastifyRequest, res: FastifyReply) => {
 
   const uniqueTracks = await removeDuplicateTracks(filteredTracks);
 
-  // order tracks by number of listeners on youtube
+  // order tracks by number of listeners on YouTube
   let orderedTracks = new Array<TrackDto>();
   try {
     orderedTracks = await orderTracksByListeners(uniqueTracks);
   } catch (e) {
     console.log(e);
+  }
+
+  // clear playlist before adding new tracks
+  const cleared = await removeAllPlaylistTracks(
+    process.env.PLAYLIST_FEAT_EMINEM_ID!,
+  );
+
+  switch (cleared) {
+    case RemoveAllPlaylistTracksResponse.Unauthorized:
+      res.status(401).send("unauthorized to clear playlist");
+      break;
+    case RemoveAllPlaylistTracksResponse.Failed:
+      res.status(500).send("failed to clear playlist");
+      break;
   }
 
   // add tracks to playlist
