@@ -5,11 +5,12 @@ function convertTracksObjectToDto(
     | SpotifyApi.TrackObjectFull[]
     | SpotifyApi.TrackObjectSimplified[],
 ): TrackDto[] {
-  return tracksObjects.map((trackObject) => {
+  return tracksObjects.map((track) => {
     return {
-      uri: trackObject.uri,
-      name: trackObject.name,
-      artists: trackObject.artists,
+      name: track.name,
+      uri: track.uri,
+      artists: track.artists,
+      listeners: 0,
     };
   });
 }
