@@ -1,7 +1,7 @@
 import SpotifyApiService from "./spotifyApiService";
 import TrackDto from "../dto/trackDto";
 import convertTracksObjectToDto from "../utils/convertTracksObject";
-import { google } from "googleapis";
+import axios from "axios";
 
 const client = SpotifyApiService.getInstance().client;
 const INTERNATIONAL_RADIO_EDIT = "International Radio Edit";
@@ -197,57 +197,28 @@ async function removeDuplicateTracks(tracks: TrackDto[]): Promise<TrackDto[]> {
 }
 
 async function orderTracksByListeners(tracks: TrackDto[]): Promise<TrackDto[]> {
-  const apiKey = process.env.YOUTUBE_API_KEY;
+  const tracks_1 = tracks.slice(0, 5);
 
-  const youtubeApi = google.youtube({
-    version: "v3",
-    auth: apiKey,
-  });
+  for (const track of tracks_1) {
+    const options = {
+      method: "GET",
+      url: process.env.X_RAPIDAPI_BASE_ENDPOINT,
+      params: {
+        q: track.name,
+      },
+      headers: {
+        "x-rapidapi-key": process.env.X_RAPIDAPI_KEY,
+        "x-rapidapi-host": process.env.X_RAPIDAPI_HOST,
+      },
+    };
 
-  const tracksWithViewCount = await Promise.all(
-    tracks.map(async (track) => {
-      try {
-        // Get the video ID for the first search result
-        const searchResponse = await youtubeApi.search.list({
-          part: ["snippet"],
-          q: track.name,
-          type: ["video"],
-          maxResults: 1,
-          order: "viewCount",
-        });
+    const response = await axios.request(options);
 
-        const videoId = searchResponse.data.items?.[0]?.id?.videoId || null;
+    // get number of views from YouTube video
+    track.listeners = Number(response.data.contents[0].video.stats.views);
+  }
 
-        if (!videoId) {
-          console.error(`Nobody video found for track: ${track.name}`);
-          return { track, viewCount: 0 };
-        }
-
-        // Get the view count for the video
-        const videoResponse = await youtubeApi.videos.list({
-          part: ["statistics"],
-          id: [videoId],
-        });
-
-        const viewCount = Number(
-          videoResponse.data.items?.[0]?.statistics?.viewCount || 0,
-        );
-
-        return { track, viewCount };
-      } catch (error) {
-        console.error(
-          `Error while getting view count for track: ${track.name}`,
-        );
-
-        return { track, viewCount: 0 };
-      }
-    }),
-  );
-
-  // Ordina le tracce in base al numero di visualizzazioni e mappa ai risultati originali
-  return tracksWithViewCount
-    .sort((a, b) => b.viewCount - a.viewCount)
-    .map(({ track }) => track);
+  return tracks_1.sort((a, b) => b.listeners - a.listeners);
 }
 
 export {
